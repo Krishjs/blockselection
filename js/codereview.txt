@@ -1,0 +1,81 @@
+Add all conditions to specification before executing the query
+Class: RouteRepository
+Method: SearchRoutes
+  if (!string.IsNullOrEmpty(tsp))
+  {
+                routeList = routeList?.Where(m => m.RouteLegDetails.Count > 1).ToList();
+  }
+Include the condition with specifications in the query.
+------------------------------------------------------------------------------------------------
+Use build query with specifitions and include instead of using Dbcontext directly
+Class: RouteRepository
+Methods: GetRoute,GetDuplicateRoutes,SaveRoutes,GetExpiredRoutesCount,GetRouteModel
+
+  return await DbContext.RouteHeaders.Include(p => p.RouteLegDetails).FirstAsync(p => p.RouteHeaderId == routeId);
+
+Using the build in framework function to build query.
+------------------------------------------------------------------------------------------------
+
+Use Count() instead using Where and Count
+Class: RouteRepository
+Method: GetRouteModel,GetExpiredRoutesCount,GetRouteModel
+
+//Don't
+DbContext.RouteHeaders.Where(m => m.ValidTo != null).Count();
+
+//Do
+DbContext.RouteHeaders.Count(m => m.ValidTo != null);
+
+//Don't
+DbContext.RouteHeaders.Where(m => m.ValidTo != null).CountAsync();
+
+//Do
+DbContext.RouteHeaders.CountAsync(m => m.ValidTo != null);
+
+Use count in place of where here as the need is only for the count.
+------------------------------------------------------------------------------------------------
+
+Optimise calling master data service
+
+Class: RouteService
+Method: SearchRoutes
+Actual:
+  List<long> terminals = new List<long>();
+  foreach (var terminal in polIds)
+  {
+    var terminalTask = Task.Run(() => this.masterService.GetEquipmentHandlingFacilities(terminal));
+    terminalTask.Wait();
+    terminalTask.Result.ToList().ForEach(p => terminals.Add(p.EquipmentHandlingFacilityId));
+  }
+  terminalId = string.Join(",", terminals.Distinct());
+
+Instead:
+  List<long> terminals = new List<long>();
+  foreach (var terminal in polIds)
+  {
+    var terminalTask = Task.Run(() => this.masterService.GetEquipmentHandlingFacilities(terminal));
+    terminalTask.Wait();
+    terminalTask.Result.ToList().ForEach(p => terminals.Add(p.EquipmentHandlingFacilityId));
+  }
+  terminalId = string.Join(",", terminals.Distinct());
+//Use inline 
+  var polIds = RouteSpecification.ConvertToCollection(tsp);
+  Dictionary<long, List<long>> inlineCache = new Dictionary<long, List<long>>();
+  List<long> terminals = new List<long>();
+  foreach (var terminal in polIds)
+  {
+      List<long> equipmentHandlingFacilities = null;
+      if (!inlineCache.TryGetValue(terminal,out equipmentHandlingFacilities))
+      {
+          var terminalTask = Task.Run(() => this.masterService.GetEquipmentHandlingFacilities(terminal));
+          terminalTask.Wait();
+          equipmentHandlingFacilities = new List<long>();
+          terminalTask.Result.ToList().ForEach(p => equipmentHandlingFacilities.Add(p.EquipmentHandlingFacilityId));
+          inlineCache.Add(terminal, equipmentHandlingFacilities);
+      }
+      terminals.AddRange(equipmentHandlingFacilities);
+  }
+  terminalId = string.Join(",", terminals.Distinct());
+  
+Call masterdata service with distinct pol id and use it to map EquipmentHandlingFacilityId
+------------------------------------------------------------------------------------------------

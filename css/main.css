@@ -1,0 +1,33 @@
+.container {
+    top: 0;
+    bottom: 0;
+    position: absolute;
+}
+
+.ground {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    bottom: 0;
+    border: 1px solid red;
+}
+
+canvas {
+    background-image: linear-gradient(top, rgb(0, 0, 30) 60%, rgb(10, 10, 60) 85%);
+    background-image: -o-linear-gradient(top, rgb(0, 0, 30) 60%, rgb(10, 10, 60) 85%);
+    background-image: -moz-linear-gradient(top, rgb(0, 0, 30) 60%, rgb(10, 10, 60) 85%);
+    background-image: -webkit-linear-gradient(top, rgb(0, 0, 30) 60%, rgb(10, 10, 60) 85%);
+}
+
+.cell {
+    border: 1px solid;
+}
+
+.layer {
+    z-index: -999;
+}
+
+.selected {
+    border: 1px solid green;
+}
